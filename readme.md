@@ -1,7 +1,7 @@
 # Tcl Object Relational Management
 
-This package provides an extremely simple (Object Relational
-Mapping)[https://en.wikipedia.org/wiki/Object-relational_mapping]
+This package provides an extremely simple [Object Relational
+Mapping](https://en.wikipedia.org/wiki/Object-relational_mapping)
 interface for Tcl and sqlite3. It supports primitive types on objects
 (eg text, real, int) and lists of other types of objects (eg a
 Character can have a list of Item). See usage examples below.
@@ -13,9 +13,9 @@ Character can have a list of Item). See usage examples below.
 <b>util.tcl</b>   - This file contains several helpers for processing
 lists, strings, etc.
 
-<b>jbroo.tcl</bd> - This file has some code that I consider a must
+<b>jbroo.tcl</b> - This file has some code that I consider a must
 have when using TclOO. Essentially obviates the need for using [my]
-and [self]. The code originates from (here)[http://wiki.tcl.tk/36957].
+and [self]. The code originates from [here](http://wiki.tcl.tk/36957).
 
 # Usage
 
