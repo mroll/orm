@@ -28,14 +28,7 @@ just sourcing the file.
 
     sqlite3 ::GameDB gamedb.sql
 
-    set ManagedObjects { Character Item }
-
-    foreach obj $ManagedObjects {
-        oo::class create $obj {
-            variable primarykey
-            accessor primarykey
-        }
-    }
+    ManagedObjects { Character Item }
 
     managed_object Character name {
         text name
