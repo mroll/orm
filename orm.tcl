@@ -43,10 +43,6 @@ proc create_table { name attrs db primarykey } {
     $db eval [subst {create table $name ([join $insert_query ", "])}]
 }
 
-
-# matt item -> select name from items where character = 'matt';
-# matt item sword -> update items set character = 'matt' where name = 'sword';
-
 proc managed_object { class primarykey attrs db } {
     if { ! [info object isa object $class] } {
         oo::class create $class {
@@ -99,6 +95,9 @@ proc managed_object { class primarykey attrs db } {
         oo::define $class method $methodname { args } [subst {
             if { \[null \$args\] } {
                 $db eval {select $getattr from $table where $getkey = \$primarykey}
+            } elseif { \[lindex \$args\ 0\] eq "-drop" } {
+                set todrop \[lindex \$args\ 1\]
+                $db eval {delete from $table where $getattr = \$todrop and $getkey = \$primarykey}
             } else {
                 $db eval {update $table set $setattr = $newval where $setkey = $val}
             }
@@ -109,68 +108,11 @@ proc managed_object { class primarykey attrs db } {
     newmethod   $class $db
 }
 
-sqlite3 ::GameDB gamedb.sql
-
-set ManagedObjects { Character Item }
-
-foreach obj $ManagedObjects {
-    oo::class create $obj {
-        variable primarykey
-        accessor primarykey
+proc ManagedObjects { objs } {
+    foreach obj $objs {
+        oo::class create $obj {
+            variable primarykey
+            accessor primarykey
+        }
     }
 }
-
-managed_object Character name {
-    text name
-    text race
-    text room
-    text armor
-    Item item -get name -by character 
-} ::GameDB
-
-managed_object Item name {
-     text  name
-     int   pcs
-     text  currency
-     int   rolls
-     int   sides
-     real  weight
-     text  mod
-     text  character
-} ::GameDB
-
-managed_object Room name {
-     text           name
-     text           desc
-     Character      people -get name -by room
-     Item           item   -get name -by room
-     Room           exits  -get name -by name
-} ::GameDB
-
-newCharacter name matt  race elf   room {North Tower}
-newCharacter name alice race human room {North Tower}
-
-newItem name sword
-newItem name cloak
-
-newRoom name tower desc {It's a tower}
-
-# For now it's a bad idea to change the value of the primary key
-# field.
-
-Character create matt matt
-matt item sword
-matt item cloak
-
-Character create alice alice
-
-Room create tower tower
-
-tower people matt
-tower people alice
-puts [tower people]
-
-matt race elf
-
-puts [matt item]
-puts [matt race]
