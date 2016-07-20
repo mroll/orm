@@ -10,18 +10,24 @@ proc constructor { class } {
     oo::define $class constructor { _primarykey } { set primarykey $_primarykey }
 }
 
-proc newmethod { class db } {
-    # example creating new Character:
-    #    newCharacter name Matt race Human room {North Tower}
-    proc new$class { args } [subst -nocommands {
-        set columns [join [odds  \$args] ", "]
-        set vals    [join [evens \$args] ", "]
-
-        set valuevars [varlist [len [split \$vals ,]]]
-        lassign [evens \$args] {*}\$valuevars
-
-        catch {$db eval [subst {insert into \\$class (\$columns) values ([join [dollarize \$valuevars] ", "])}]}
+proc destructor { class primarykey db } {
+    oo::define $class destructor [subst {
+        $db eval {delete from $class where $primarykey = \$primarykey}
     }]
+}
+
+proc insert { db table args } {
+    set columns [join [odds $args] ", "]
+    set vals    [evens $args]
+
+    set valuevars [varlist [len $vals]]
+    lassign $vals {*}$valuevars
+
+    catch {$db eval [subst {insert into $table ($columns) values ([join [dollarize $valuevars] ", "])}]}
+}
+
+proc newmethod { class db } {
+    proc new$class args [subst {insert $db $class {*}\$args}]
 }
 
 proc table_exists { tablename db } {
@@ -43,7 +49,7 @@ proc create_table { name attrs db primarykey } {
     $db eval [subst {create table $name ([join $insert_query ", "])}]
 }
 
-proc managed_object { class primarykey attrs db } {
+proc managed_object { class primarykey attrs db {constructive 0} } {
     if { ! [info object isa object $class] } {
         oo::class create $class {
             variable primarykey
@@ -68,13 +74,12 @@ proc managed_object { class primarykey attrs db } {
         set getkey     $primarykey
         set setkey     $primarykey
         set val        \$primarykey
+        set drop       {}
 
         # fix condset to work in this situation
         if {[info object isa object $type]} {
             set table $type
-            set tmp    $newval
-            set newval $val
-            set val    $tmp
+            swap val newval
         } else {
             set table $class
         }
@@ -89,22 +94,32 @@ proc managed_object { class primarykey attrs db } {
                     set getkey [next]
                     set setattr $getkey
                 }
+                -drop {
+                    set drop [subst -nocommands {elseif { \\[lindex \\\$args 0\\] eq "-drop" } {
+                set todrop \\[lindex \\\$args 1\\]
+                \$db eval {update \$table set \$getkey = "" where \$getattr = \\\$todrop }
+            }}]
+                }
             }
+        }
+
+        if { $constructive } {
+            set setter [list insert $db $class \$args]
+        } else {
+            set setter [subst {$db eval {update $table set $setattr = $newval where $setkey = $val}}]
         }
 
         oo::define $class method $methodname { args } [subst {
             if { \[null \$args\] } {
                 $db eval {select $getattr from $table where $getkey = \$primarykey}
-            } elseif { \[lindex \$args\ 0\] eq "-drop" } {
-                set todrop \[lindex \$args\ 1\]
-                $db eval {delete from $table where $getattr = \$todrop and $getkey = \$primarykey}
-            } else {
-                $db eval {update $table set $setattr = $newval where $setkey = $val}
+            } [subst $drop] else {
+                $setter
             }
         }]
     }
 
     constructor $class
+    destructor  $class $primarykey $db
     newmethod   $class $db
 }
 

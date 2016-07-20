@@ -73,8 +73,6 @@ proc dbind { list args } {
         uplevel $script
     }
 }
-# util.tcl
-#
 
 proc art { noun } {
     set vowels {aeiouAEIOU}
@@ -338,4 +336,8 @@ proc iter { var list body } {
         uplevel [list set $var [next]]
         uplevel $body
     }
+}
+
+proc swap { x y } {
+    uplevel [subst { set tmp $$x; set $x $$y; set $y \$tmp }]
 }
